@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-1
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-2
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+--- 
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-3
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-4
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-5
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-6
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: volume-to-test-pvc-7
+ namespace: file-generator
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs  
+--- 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: move-pv
+spec:
+  volumes:
+  - name: volume-to-test
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc  
+  - name: volume-to-test-1
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-1
+  - name: volume-to-test-2
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-2
+  - name: volume-to-test-3
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-3
+  - name: volume-to-test-4
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-4
+  - name: volume-to-test-5
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-5
+  - name: volume-to-test-6
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-6
+  - name: volume-to-test-7
+    persistentVolumeClaim:
+      claimName: volume-to-test-pvc-7
+  containers:
+  - name: bash
+    image: registry.redhat.io/openshift4/ose-tools-rhel8
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "while true; do sleep 30; done;" ]
+    volumeMounts:
+      - name: volume-to-test
+        mountPath: /volume-test
+      - name: volume-to-test-1
+        mountPath: /volume-test-1
+      - name: volume-to-test-2
+        mountPath: /volume-test-2
+      - name: volume-to-test-3
+        mountPath: /volume-test-3
+      - name: volume-to-test-4
+        mountPath: /volume-test-4
+      - name: volume-to-test-5
+        mountPath: /volume-test-5
+      - name: volume-to-test-6
+        mountPath: /volume-test-6
+      - name: volume-to-test-7
+        mountPath: /volume-test-7
+
+
+for i in {1..7}; do cat <<EOF | oc apply -f - 
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  annotations:
+    snapshot.storage.kubernetes.io/pvc-access-modes: ReadWriteMany
+    snapshot.storage.kubernetes.io/pvc-storage-class: ocs-storagecluster-cephfs
+    snapshot.storage.kubernetes.io/pvc-volume-mode: Filesystem
+  name: volume-to-test-pvc-snapshot-$i
+  namespace: file-generator
+spec:
+  source:
+    persistentVolumeClaimName: volume-to-test-pvc-$i
+  volumeSnapshotClassName: ocs-storagecluster-cephfsplugin-snapclass
+EOF
+done
+
+---
+for i in {1..7}; do cat <<EOF | oc apply -f -
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: volume-to-test-pvc-snapshot-restore-$i
+  namespace: file-generator
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: ocs-storagecluster-cephfs
+  volumeMode: Filesystem
+  dataSource:
+    apiGroup: snapshot.storage.k8s.io
+    kind: VolumeSnapshot
+    name: volume-to-test-pvc-snapshot-$i
+EOF
+done

@@ -1,0 +1,97 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+  name: fio-test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ creationTimestamp: null
+ name: volume-to-test-pvc
+ namespace: fio-test
+spec:
+ accessModes:
+ - ReadWriteMany
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-cephfs
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    run: fio-test
+  name: fio-test
+  namespace: fio-test
+spec:
+  template:
+    spec:
+      activeDeadlineSeconds: 600
+      containers:
+        - image: registry.redhat.io/openshift4/ose-tools-rhel8
+          command:
+            - /bin/bash
+            - -c
+            - |
+              cd $PATH_TO_TEST
+              echo ""
+              echo "***** Single 4KiB random write process *****"
+              fio --name=random-write --ioengine=posixaio --rw=randwrite --direct=1 --bs=4k --size=1g --numjobs=1 --iodepth=1 --runtime=60 --time_based --end_fsync=1 --group_reporting  
+
+              echo ""
+              echo "***** 16 parallel 64KiB random write processes *****"
+              fio --name=random-write --ioengine=posixaio --rw=randwrite --direct=1 --bs=64k --size=64m --numjobs=16 --iodepth=16 --runtime=60 --time_based --end_fsync=1 --group_reporting  
+
+              echo ""
+              echo "***** Single 1MiB random write process *****"
+              fio --name=random-write --ioengine=posixaio --rw=randwrite --direct=1 --bs=1m --size=4g --numjobs=1 --iodepth=1 --runtime=60 --time_based --end_fsync=1 --group_reporting  
+              
+          env:
+            - name: PATH_TO_TEST
+              value: /volume-test
+          imagePullPolicy: IfNotPresent
+          name: fio-test
+          volumeMounts:
+            - name: volume-to-test
+              mountPath: /volume-test          
+      volumes:
+        - name: volume-to-test
+          persistentVolumeClaim:
+            claimName: volume-to-test-pvc          
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      serviceAccount: default
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ creationTimestamp: null
+ name: volume-to-test-pvc
+ namespace: fio-test
+spec:
+ accessModes:
+ - ReadWriteOnce
+ resources:
+   requests:
+     storage: 150Gi
+ storageClassName: ocs-storagecluster-ceph-rbd
+
+      
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: io1-csi
+provisioner: ebs.csi.aws.com
+parameters:
+  allowAutoIOPSPerGBIncrease: 'true'
+  iopsPerGB: '50'
+  type: io1
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
