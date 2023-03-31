@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+  app: fio-perf-test
+
+resources:
+- fio-job-4k.yaml
+- fio-job-16k.yaml
+- fio-job-32k.yaml
+- fio-job-64k.yaml

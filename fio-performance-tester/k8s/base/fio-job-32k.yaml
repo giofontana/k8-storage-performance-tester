@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fio-perf-tester-32k
+  namespace: fio-perf-test
+spec:
+  template:
+    spec:
+      volumes:
+        - name: vol-to-test
+          persistentVolumeClaim:
+            claimName: vol-to-test-32k-pv-claim
+      containers:
+      - name: fio-perf-tester
+        image: quay.io/gfontana/fio-perf-tester:1.0
+        env:
+          - name: FIO_DIR
+            value: "/vol-to-test"
+          - name: FIO_CMD
+            value: "fio --rw=write --ioengine=sync --fdatasync=1 --size=100m --bs=32k --name=perf_test --runtime=60 --time_based=1"
+        volumeMounts:
+          - mountPath: "/vol-to-test"
+            name: vol-to-test            
+        securityContext:
+          seccompProfile:
+            type: "RuntimeDefault"
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false   
+          capabilities:
+            drop:
+              - "ALL"
+      restartPolicy: Never
+  backoffLimit: 4

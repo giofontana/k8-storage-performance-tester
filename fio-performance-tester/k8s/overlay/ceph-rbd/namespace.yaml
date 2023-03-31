@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fio-perf-test-ceph-rbd
+  labels:
+    name: fio-perf-test-ceph-rbd

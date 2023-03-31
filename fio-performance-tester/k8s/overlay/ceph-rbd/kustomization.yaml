@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fio-perf-test-ceph-rbd
+
+bases:
+  - ../../base
+
+resources:
+  - namespace.yaml
+  - pvc-4k.yaml
+  - pvc-16k.yaml
+  - pvc-32k.yaml
+  - pvc-64k.yaml

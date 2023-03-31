@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vol-to-test-64k-pv-claim
+  namespace: fio-perf-test
+spec:
+  storageClassName: vsphere-standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
